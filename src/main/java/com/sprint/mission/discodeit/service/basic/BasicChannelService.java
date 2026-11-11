@@ -26,7 +26,6 @@ public class BasicChannelService implements ChannelService {
     private final UserRepository userRepository;
     private final MessageRepository messageRepository;
 
-    private final UserStatusRepository userStatusRepository;
     private final ReadStatusRepository readStatusRepository;
     private final BinaryContentRepository binaryContentRepository;
 
@@ -70,7 +69,7 @@ public class BasicChannelService implements ChannelService {
             return this.toChannelInfo(channel);
         } else {
             throw new InvalidChannelCreateRequestException(
-                    "옳바르지 않은 채널 생성 요청입니다."
+                    "올바르지 않은 채널 생성 요청입니다."
             );
         }
     }
@@ -108,35 +107,40 @@ public class BasicChannelService implements ChannelService {
 
     @Override
     public ChannelInfo find(ChannelFindRequest request) {
-        Channel channel = channelRepository.findById(request.channelId())
-                .orElseThrow(() ->
-                        new ChannelNotFoundException(
-                    "ID가 " + request.channelId() + "인 채널을 찾을 수 없습니다."
-                ));
+        Channel channel = this.findChannelEntity(request.channelId());
 
         return toChannelInfo(channel);
     }
 
+    private Channel findChannelEntity(UUID channelId) {
+        return this.channelRepository.findById(channelId)
+                .orElseThrow(() ->
+                        new ChannelNotFoundException(
+                                "ID가 " + channelId + "인 채널을 찾을 수 없습니다."
+                        ));
+    }
 
+    @Override
     public List<ChannelInfo> findAllByUserId(UUID userId) {
-        this.userRepository.existsById(userId);
+        if (!this.userRepository.existsById(userId)) {
+            throw new UserNotFoundException(
+                    "ID가 " + userId + "인 사용자를 찾을 수 없습니다."
+            );
+        }
 
         List<ChannelInfo> availablePrivateChannelsByUserId =
                 this.readStatusRepository.findAll().stream()
                         .filter(rs ->
                                 rs.getUserId().equals(userId))
+                        .map(ReadStatus::getChannelId)
                         .distinct()
-                        .map(rs ->
-                                this.channelRepository.findById(
-                                        rs.getChannelId())
-                                .orElseThrow(() ->
-                                        new ChannelNotFoundException(
-                                        "ID가 "
-                                        + rs.getChannelId()
-                                        + "인 채널을 찾을 수 없습니다."
-                                )))
-                        .filter(c ->
-                                c.getType() == ChannelType.PRIVATE)
+                        .map(channelId ->
+                                        this.channelRepository.findById(channelId)
+                                                .orElseThrow(() ->
+                                                        new ChannelNotFoundException(
+                                                                "ID가 " + channelId + "인 채널을 찾을 수 없습니다."
+                                                        )))
+                        .filter(c -> c.getType() == ChannelType.PRIVATE)
                         .map(this::toChannelInfo)
                         .toList();
 
@@ -158,10 +162,7 @@ public class BasicChannelService implements ChannelService {
             );
         }
 
-        Channel channel = channelRepository.findById(channelId)
-                .orElseThrow(() -> new ChannelNotFoundException(
-                        "ID가 " + channelId + "인 채널을 찾을 수 없습니다."
-                ));
+        Channel channel = this.findChannelEntity(channelId);
 
         if (channel.getType() == ChannelType.PRIVATE) {
             throw new PrivateChannelModificationNotAllowedException(
@@ -177,11 +178,7 @@ public class BasicChannelService implements ChannelService {
 
     @Override
     public void delete(UUID channelId) {
-        Channel channel = this.channelRepository.findById(channelId)
-                .orElseThrow(() ->
-                        new ChannelNotFoundException(
-                                "ID가 " + channelId + "인 채널을 찾을 수 없습니다."
-                        ));
+        Channel channel = this.findChannelEntity(channelId);
 
         List<Message> messageList = this.messageRepository.findAll();
 
