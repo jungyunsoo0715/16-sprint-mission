@@ -55,12 +55,16 @@ public class BasicReadStatusService implements ReadStatusService {
 
     @Override
     public ReadStatusResponse find(UUID readStatusId) {
-        ReadStatus readStatus = this.readStatusRepository.findById(readStatusId)
+        ReadStatus readStatus = this.findReadStatusEntity(readStatusId);
+
+        return this.toReadStatusResponse(readStatus);
+    }
+
+    private ReadStatus findReadStatusEntity(UUID readStatusId) {
+        return this.readStatusRepository.findById(readStatusId)
                 .orElseThrow(() -> new ReadStatusNotFoundException(
                         "ID가 " + readStatusId + "인 메시지 수신 정보를 찾을 수 없습니다."
                 ));
-
-        return this.toReadStatusResponse(readStatus);
     }
 
     private ReadStatusResponse toReadStatusResponse(ReadStatus readStatus) {
@@ -90,11 +94,7 @@ public class BasicReadStatusService implements ReadStatusService {
 
     @Override
     public ReadStatusResponse update(ReadStatusUpdateRequest request) {
-        ReadStatus readStatus =
-                this.readStatusRepository.findById(request.readStatusId())
-                .orElseThrow(() -> new ReadStatusNotFoundException(
-                        "ID가 " + request.readStatusId() + "인 메시지 수신 정보를 찾을 수 없습니다."
-                ));
+        ReadStatus readStatus = this.findReadStatusEntity(request.readStatusId());
 
         readStatus.update();
         this.readStatusRepository.save(readStatus);
