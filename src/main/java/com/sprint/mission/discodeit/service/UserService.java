@@ -19,6 +19,8 @@ public interface UserService {
 
     List<UserResponse> findAll();
 
+    User findUserEntity(UUID userId);
+
     UserStatus findUserStatus(UUID userId);
 
     UserResponse update(UUID userId, UserUpdateRequest request, MultipartFile profile)

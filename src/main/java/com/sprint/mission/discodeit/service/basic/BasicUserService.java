@@ -101,7 +101,8 @@ public class BasicUserService implements UserService {
         return this.userMapper.toUserResponse(user, userStatus);
     }
 
-    private User findUserEntity(UUID userId) {
+    @Override
+    public User findUserEntity(UUID userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(
                         "ID가 " + userId + "인 사용자를 찾을 수 없습니다."
@@ -132,7 +133,7 @@ public class BasicUserService implements UserService {
             MultipartFile profile
     ) throws IOException {
 
-        User user =this.findUserEntity(userId);
+        User user = this.findUserEntity(userId);
 
         if (!Objects.equals(request.newUsername(), user.getUsername())) {
             validateUniqueUsername(request.newUsername());

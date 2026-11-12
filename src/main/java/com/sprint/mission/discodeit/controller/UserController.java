@@ -6,10 +6,6 @@ import com.sprint.mission.discodeit.dto.user.UserResponse;
 import com.sprint.mission.discodeit.dto.user.UserUpdateRequest;
 import com.sprint.mission.discodeit.dto.userstatus.UserStatusResponse;
 import com.sprint.mission.discodeit.dto.userstatus.UserStatusUpdateRequest;
-import com.sprint.mission.discodeit.entity.User;
-import com.sprint.mission.discodeit.entity.UserStatus;
-import com.sprint.mission.discodeit.mapper.UserMapper;
-import com.sprint.mission.discodeit.mapper.UserStatusMapper;
 import com.sprint.mission.discodeit.service.UserService;
 import com.sprint.mission.discodeit.service.UserStatusService;
 import jakarta.validation.Valid;
@@ -20,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,32 +24,29 @@ import java.util.UUID;
 @RequestMapping("/users")
 @RequiredArgsConstructor
 public class UserController {
+
     private final UserService userService;
     private final UserStatusService userStatusService;
-    private final UserMapper userMapper;
-    private final UserStatusMapper userStatusMapper;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<UserResponse> createUser(
             @Valid @RequestPart("request") UserCreateRequest request,
             @RequestPart(value = "profile", required = false)
             MultipartFile profile
-    ) {
-        User user = userService.create(request, profile);
-        UserStatus userStatus = userService.findUserStatus(user.getId());
+    ) throws IOException {
+        UserResponse userResponse = userService.create(request, profile);
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(userMapper.toResponse(user, userStatus));
+                .body(userResponse);
     }
 
-    @PatchMapping("/{user-id}")
-    public ResponseEntity<UserResponse> updateUser(@PathVariable("user-id") UUID userId,
-                                                   @Valid @RequestPart("request") UserUpdateRequest request,
-                                                   @RequestPart(value = "profile", required = false)
-                                                   MultipartFile profile) {
-        User user = this.userService.update(userId, request, profile);
-        UserStatus userStatus = this.userService.findUserStatus(user.getId());
-        UserResponse userResponse = this.userMapper.toResponse(user, userStatus);
+    @PatchMapping(value = "/{user-id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UserResponse> updateUser(
+            @PathVariable("user-id") UUID userId,
+            @Valid @RequestPart("request") UserUpdateRequest request,
+            @RequestPart(value = "profile", required = false)
+            MultipartFile profile) throws IOException {
+        UserResponse userResponse = this.userService.update(userId, request, profile);
 
         return ResponseEntity.ok(userResponse);
     }
